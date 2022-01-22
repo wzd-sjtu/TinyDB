@@ -59,6 +59,8 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   Page *GetPages() { return pages_; }
 
  protected:
+  
+  bool find_replace(frame_id_t *frema_id);
   /**
    * Fetch the requested page from the buffer pool.
    * @param page_id id of page to be fetched
@@ -131,6 +133,7 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   std::atomic<page_id_t> next_page_id_ = instance_index_;
 
   /** Array of buffer pool pages. */
+  // use frame_id as bottom index
   Page *pages_;
   /** Pointer to the disk manager. */
   DiskManager *disk_manager_ __attribute__((__unused__));
