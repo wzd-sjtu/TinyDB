@@ -55,6 +55,9 @@ bool BufferPoolManagerInstance::find_replace(frame_id_t *frame_id) {
   }
   // free list is not empty
   // use is pointer right!
+
+
+  // the frame id tha is to be replaced
   if(replacer_->Victim(frame_id)) {
     page_id_t replace_frame_id = -1;
 
@@ -74,7 +77,7 @@ bool BufferPoolManagerInstance::find_replace(frame_id_t *frame_id) {
       if(replace_page->is_dirty_) {
         char* data = pages_[page_table_[replace_page->page_id_]].data_;
         disk_manager_->WritePage(replace_page->page_id_, data);
-        replace_page->pin_count_ = 0;
+        replace_page->pin_count_ = 0; // Reset pin_count
       }
 
       page_table_.erase(replace_page->page_id_);
@@ -102,10 +105,12 @@ bool BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) {
 void BufferPoolManagerInstance::FlushAllPgsImp() {
   // You can do it!
   // write all dirty pages into the disk yes!
+  latch_.lock();
   for(auto item:page_table_) {
     // item is page_id_t
     FlushPgImp(item.first);
   }
+  latch_.unlock();
   return;
 }
 
@@ -115,6 +120,8 @@ Page *BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) {
   // 2.   Pick a victim page P from either the free list or the replacer. Always pick from the free list first.
   // 3.   Update P's metadata, zero out memory and add P to the page table.
   // 4.   Set the page ID output parameter. Return a pointer to P.
+  latch_.lock();
+
   page_id_t new_page_id = AllocatePage();
 
   bool is_all = true;
@@ -124,6 +131,8 @@ Page *BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) {
       break;
     }
   }
+  // all pages are pinned
+
   if(is_all) {
     latch_.unlock();
     return nullptr;
@@ -140,13 +149,16 @@ Page *BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) {
   victim_page->pin_count_++;
   // move to the front
   replacer_->Pin(victim_frame_id);
+
+  // forget to add the new mapping
+  page_table_[new_page_id] = victim_frame_id;
+
   victim_page->is_dirty_ = false;
   *page_id = new_page_id;
 
   disk_manager_->WritePage(victim_page->GetPageId(), victim_page->GetData());
   
   latch_.unlock();
-
   return victim_page;
 }
 
@@ -220,6 +232,7 @@ bool BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) {
 
   if(del_page->pin_count_ > 0) {
     latch_.unlock();
+    // someone pin on the page
     return false;
   }
 
@@ -242,6 +255,9 @@ bool BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) {
   return true;
 }
 
+// OK I successfully get all the results!
+// Which is always amazing for me.
+
 bool BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) {
   latch_.lock();
 
@@ -250,12 +266,14 @@ bool BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) {
     latch_.unlock();
     return false;
   }
+
   frame_id_t unpinned_frame_id = iter->second;
   Page *unpinned_page = &pages_[unpinned_frame_id];
   if(is_dirty) {
     unpinned_page->is_dirty_ = true;
   }
 
+  // the exercises there are somehow complex for us.
   if(unpinned_page->pin_count_ == 0) {
     latch_.unlock();
     return false;
@@ -265,6 +283,7 @@ bool BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) {
     replacer_->Unpin(unpinned_frame_id);
   }
 
+  // NULL
   latch_.unlock();
   return true;
 }
@@ -275,6 +294,9 @@ page_id_t BufferPoolManagerInstance::AllocatePage() {
   ValidatePageId(next_page_id);
   return next_page_id;
 }
+
+// equal now instance_index_
+// which is always complex to understand, damn it!
 
 void BufferPoolManagerInstance::ValidatePageId(const page_id_t page_id) const {
   assert(page_id % num_instances_ == instance_index_);  // allocated pages mod back to this BPI

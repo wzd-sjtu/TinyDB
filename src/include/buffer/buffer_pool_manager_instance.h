@@ -58,8 +58,8 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   /** @return pointer to all the pages in the buffer pool */
   Page *GetPages() { return pages_; }
 
- protected:
-  
+
+public:
   bool find_replace(frame_id_t *frema_id);
   /**
    * Fetch the requested page from the buffer pool.
@@ -149,3 +149,5 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   std::mutex latch_;
 };
 }  // namespace bustub
+
+// NewPageImpl
