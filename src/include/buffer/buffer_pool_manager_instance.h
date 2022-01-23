@@ -58,8 +58,7 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   /** @return pointer to all the pages in the buffer pool */
   Page *GetPages() { return pages_; }
 
-
-public:
+ public:
   bool find_replace(frame_id_t *frema_id);
   /**
    * Fetch the requested page from the buffer pool.

@@ -21,36 +21,35 @@ ParallelBufferPoolManager::ParallelBufferPoolManager(size_t num_instances, size_
   // Allocate and create individual BufferPoolManagerInstances
 
   /*
-  BufferPoolManagerInstance(size_t pool_size, 
+  BufferPoolManagerInstance(size_t pool_size,
   uint32_t num_instances, uint32_t instance_index,
    DiskManager *disk_manager, LogManager *log_manager)
 
   */
   num_instances_ = num_instances;
-  parallel_pool_size_ = num_instances*pool_size;
+  parallel_pool_size_ = num_instances * pool_size;
   each_pool_size_ = pool_size;
   search_num_ = 0;
 
   // init of all protected things
-  for(size_t i=0; i<num_instances; i++) {
-    BufferPoolManagerInstance* tmp = new BufferPoolManagerInstance( \
-      pool_size, num_instances, i, disk_manager, log_manager);
+  for (size_t i = 0; i < num_instances; i++) {
+    BufferPoolManagerInstance *tmp =
+        new BufferPoolManagerInstance(pool_size, num_instances, i, disk_manager, log_manager);
     bufpoolIns_vector_.push_back(tmp);
 
     // not a same namespace
     // all of them are pointer here
-    std::mutex* related_mutex = new std::mutex();
+    std::mutex *related_mutex = new std::mutex();
     latch_vector_.push_back(related_mutex);
-
   }
 }
 
 // Update constructor to destruct all BufferPoolManagerInstances and deallocate any associated memory
 ParallelBufferPoolManager::~ParallelBufferPoolManager() {
   // empty all spaces
-  for(size_t i=0; i<num_instances_; i++) {
-    delete(latch_vector_[i]);
-    delete(bufpoolIns_vector_[i]);
+  for (size_t i = 0; i < num_instances_; i++) {
+    delete (latch_vector_[i]);
+    delete (bufpoolIns_vector_[i]);
   }
 }
 
@@ -68,21 +67,21 @@ BufferPoolManager *ParallelBufferPoolManager::GetBufferPoolManager(page_id_t pag
 
 Page *ParallelBufferPoolManager::FetchPgImp(page_id_t page_id) {
   // Fetch page for page_id from responsible BufferPoolManagerInstance
-  BufferPoolManager* select_bufferpool_ins = GetBufferPoolManager(page_id);
-  Page* res = select_bufferpool_ins->FetchPgImp(page_id);
+  BufferPoolManager *select_bufferpool_ins = GetBufferPoolManager(page_id);
+  Page *res = select_bufferpool_ins->FetchPgImp(page_id);
 
   return res;
 }
 
 bool ParallelBufferPoolManager::UnpinPgImp(page_id_t page_id, bool is_dirty) {
-  BufferPoolManager* select_bufferpool_ins = GetBufferPoolManager(page_id);
+  BufferPoolManager *select_bufferpool_ins = GetBufferPoolManager(page_id);
   bool res = select_bufferpool_ins->UnpinPgImp(page_id, is_dirty);
   return res;
 }
 
 bool ParallelBufferPoolManager::FlushPgImp(page_id_t page_id) {
   // Flush page_id from responsible BufferPoolManagerInstance
-  BufferPoolManager* select_bufferpool_ins = GetBufferPoolManager(page_id);
+  BufferPoolManager *select_bufferpool_ins = GetBufferPoolManager(page_id);
   bool res = select_bufferpool_ins->FlushPgImp(page_id);
   return res;
 }
@@ -100,16 +99,16 @@ Page *ParallelBufferPoolManager::NewPgImp(page_id_t *page_id) {
   // NULL
   latch_for_robin_.lock();
   size_t search_times = 0;
-  Page* res = nullptr;
+  Page *res = nullptr;
 
-  for(search_times = 0; search_times < num_instances_; search_times++) {
-    BufferPoolManager* select_bufferpool_ins = bufpoolIns_vector_[search_num_];
+  for (search_times = 0; search_times < num_instances_; search_times++) {
+    BufferPoolManager *select_bufferpool_ins = bufpoolIns_vector_[search_num_];
     res = select_bufferpool_ins->NewPgImp(page_id);
 
     search_times++;
-    search_num_ = (search_num_ + 1)%num_instances_; // next number
+    search_num_ = (search_num_ + 1) % num_instances_;  // next number
 
-    if(res!=nullptr) {
+    if (res != nullptr) {
       // find it!
       latch_for_robin_.unlock();
       return res;
@@ -123,7 +122,7 @@ Page *ParallelBufferPoolManager::NewPgImp(page_id_t *page_id) {
 
 bool ParallelBufferPoolManager::DeletePgImp(page_id_t page_id) {
   // Delete page_id from responsible BufferPoolManagerInstance
-  BufferPoolManager* select_bufferpool_ins = GetBufferPoolManager(page_id);
+  BufferPoolManager *select_bufferpool_ins = GetBufferPoolManager(page_id);
 
   bool res = select_bufferpool_ins->DeletePgImp(page_id);
 
@@ -135,10 +134,8 @@ void ParallelBufferPoolManager::FlushAllPgsImp() {
   // TRY to flush all things
   // one page inner
   // inner add the mutex and latches
-  for(size_t i=0; i<num_instances_; i++) {
+  for (size_t i = 0; i < num_instances_; i++) {
     bufpoolIns_vector_[i]->FlushAllPgsImp();
   }
 }
 }  // namespace bustub
-
-// buffer_pool_manager_instance_test
