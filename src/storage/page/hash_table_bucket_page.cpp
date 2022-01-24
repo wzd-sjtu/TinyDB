@@ -26,22 +26,42 @@ bool HASH_TABLE_BUCKET_TYPE::GetValue(KeyType key, KeyComparator cmp, std::vecto
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BUCKET_TYPE::Insert(KeyType key, ValueType value, KeyComparator cmp) {
-  return true;
+  for(uint32_t i=0; i<BUCKET_ARRAY_SIZE; i++) {
+    if(!IsOccupied(i)&&readable_[i]==0) {
+      // occupy by it
+      occupied_[i] = 1;
+      readable_[i] = 1;
+
+      array_[i] = {key, value};
+      return true;
+    }
+  }
+  // do not consider split up
+  return false;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BUCKET_TYPE::Remove(KeyType key, ValueType value, KeyComparator cmp) {
+  MappingType* tmp = nullptr;
+  // set one id is ok for the operator
+  for(uint32_t i=0; i<BUCKET_ARRAY_SIZE; i++) {
+    tmp = &array_[i];
+    if(readable_[i] == 1 && cmp(key, tmp->first) == 0) {
+      readable_[i] = 0;
+      return true;
+    }
+  }
   return false;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 KeyType HASH_TABLE_BUCKET_TYPE::KeyAt(uint32_t bucket_idx) const {
-  return {};
+  return array_[bucket_idx].first;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 ValueType HASH_TABLE_BUCKET_TYPE::ValueAt(uint32_t bucket_idx) const {
-  return {};
+  return array_[bucket_idx].second;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
@@ -49,7 +69,8 @@ void HASH_TABLE_BUCKET_TYPE::RemoveAt(uint32_t bucket_idx) {}
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BUCKET_TYPE::IsOccupied(uint32_t bucket_idx) const {
-  return false;
+
+  return occupied_[bucket_idx] == 1;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
@@ -57,7 +78,7 @@ void HASH_TABLE_BUCKET_TYPE::SetOccupied(uint32_t bucket_idx) {}
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BUCKET_TYPE::IsReadable(uint32_t bucket_idx) const {
-  return false;
+  return readable_[bucket_idx] == 1;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>

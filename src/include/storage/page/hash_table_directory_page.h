@@ -187,11 +187,21 @@ class HashTableDirectoryPage {
   void PrintDirectory();
 
  private:
+  // 4bytes 32bits
+  // where the directory stores
   page_id_t page_id_;
+  // 4bytes 32bits
+  // length of the directory?yes
   lsn_t lsn_;
+  // 4bytes 32bits equal global_counter
   uint32_t global_depth_{0};
+  // 512*8 512bytes
   uint8_t local_depths_[DIRECTORY_ARRAY_SIZE];
+  // 512*32 2048bytes
   page_id_t bucket_page_ids_[DIRECTORY_ARRAY_SIZE];
+
+  // almost no use for us
+  uint32_t size_;
 };
 
 }  // namespace bustub
