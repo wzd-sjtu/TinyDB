@@ -68,21 +68,21 @@ BufferPoolManager *ParallelBufferPoolManager::GetBufferPoolManager(page_id_t pag
 Page *ParallelBufferPoolManager::FetchPgImp(page_id_t page_id) {
   // Fetch page for page_id from responsible BufferPoolManagerInstance
   BufferPoolManager *select_bufferpool_ins = GetBufferPoolManager(page_id);
-  Page *res = select_bufferpool_ins->FetchPgImp(page_id);
+  Page *res = select_bufferpool_ins->wrap_FetchPgImp(page_id);
 
   return res;
 }
 
 bool ParallelBufferPoolManager::UnpinPgImp(page_id_t page_id, bool is_dirty) {
   BufferPoolManager *select_bufferpool_ins = GetBufferPoolManager(page_id);
-  bool res = select_bufferpool_ins->UnpinPgImp(page_id, is_dirty);
+  bool res = select_bufferpool_ins->wrap_UnpinPgImp(page_id, is_dirty);
   return res;
 }
 
 bool ParallelBufferPoolManager::FlushPgImp(page_id_t page_id) {
   // Flush page_id from responsible BufferPoolManagerInstance
   BufferPoolManager *select_bufferpool_ins = GetBufferPoolManager(page_id);
-  bool res = select_bufferpool_ins->FlushPgImp(page_id);
+  bool res = select_bufferpool_ins->wrap_FlushPgImp(page_id);
   return res;
 }
 
@@ -103,20 +103,20 @@ Page *ParallelBufferPoolManager::NewPgImp(page_id_t *page_id) {
 
   for (search_times = 0; search_times < num_instances_; search_times++) {
     BufferPoolManager *select_bufferpool_ins = bufpoolIns_vector_[search_num_];
-    res = select_bufferpool_ins->NewPgImp(page_id);
+    res = select_bufferpool_ins->wrap_NewPgImp(page_id);
 
     search_times++;
     search_num_ = (search_num_ + 1) % num_instances_;  // next number
 
-    if (res != nullptr) {
+    if (res != nullptr || res != NULL) {
       // find it!
       latch_for_robin_.unlock();
       return res;
     }
   }
-
+  // can't find where it is the bug?
+  // damn it!
   latch_for_robin_.unlock();
-  // unable to find it?
   return res;
 }
 
@@ -124,7 +124,7 @@ bool ParallelBufferPoolManager::DeletePgImp(page_id_t page_id) {
   // Delete page_id from responsible BufferPoolManagerInstance
   BufferPoolManager *select_bufferpool_ins = GetBufferPoolManager(page_id);
 
-  bool res = select_bufferpool_ins->DeletePgImp(page_id);
+  bool res = select_bufferpool_ins->wrap_DeletePgImp(page_id);
 
   return res;
 }
@@ -135,7 +135,7 @@ void ParallelBufferPoolManager::FlushAllPgsImp() {
   // one page inner
   // inner add the mutex and latches
   for (size_t i = 0; i < num_instances_; i++) {
-    bufpoolIns_vector_[i]->FlushAllPgsImp();
+    bufpoolIns_vector_[i]->wrap_FlushAllPgsImpl();
   }
 }
 }  // namespace bustub

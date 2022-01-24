@@ -99,7 +99,29 @@ class BufferPoolManager {
       callback(callback_type, page_id);
     }
   }
+  // for wrap
+  // should be all set together
+  // now somehow the result is right for me
+  Page* wrap_FetchPgImp(page_id_t page_id) {
+    return FetchPgImp(page_id);
+  }
+  bool wrap_UnpinPgImp(page_id_t page_id, bool is_dirty) {
+    return UnpinPgImp(page_id, is_dirty);
+  }
+  bool wrap_FlushPgImp(page_id_t page_id) {
+    return FlushPgImp(page_id);
+  }
+  Page* wrap_NewPgImp(page_id_t *page_id) {
+    return NewPgImp(page_id);
+  }
+  bool wrap_DeletePgImp(page_id_t page_id) {
+    return DeletePgImp(page_id);
+  }
+  void wrap_FlushAllPgsImpl() {
+    FlushAllPgsImp();
+  }
 
+ protected:
   /**
    * Fetch the requested page from the buffer pool.
    * @param page_id id of page to be fetched

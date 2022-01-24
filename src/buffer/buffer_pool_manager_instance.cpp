@@ -58,18 +58,19 @@ bool BufferPoolManagerInstance::find_replace(frame_id_t *frame_id) {
 
   // the frame id tha is to be replaced
   if (replacer_->Victim(frame_id)) {
-    page_id_t replace_frame_id = -1;
+    page_id_t replace_page_id = -1;
 
     for (const auto &p : page_table_) {
       page_id_t pid = p.first;
       frame_id_t fid = p.second;
 
       if (fid == *frame_id) {
-        replace_frame_id = pid;
+        replace_page_id = pid;
         break;
       }
     }
-    if (replace_frame_id != -1) {
+
+    if (replace_page_id != -1) {
       Page *replace_page = &pages_[*frame_id];
 
       // dirty page which need to be writeen back
@@ -89,6 +90,9 @@ bool BufferPoolManagerInstance::find_replace(frame_id_t *frame_id) {
 
 bool BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) {
   // Make sure you call DiskManager::WritePage!
+  // It has get the lock outside
+  //latch_.lock();
+
   auto iter = page_table_.find(page_id);
   if (iter == page_table_.end() || page_id == INVALID_PAGE_ID) {
     latch_.unlock();
@@ -98,7 +102,10 @@ bool BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) {
   frame_id_t flush_id = iter->second;
   disk_manager_->WritePage(page_id, pages_[flush_id].data_);
 
-  return false;
+  // flush should be successfull
+  //latch_.unlock();
+
+  return true;
 }
 
 void BufferPoolManagerInstance::FlushAllPgsImp() {
@@ -209,7 +216,9 @@ Page *BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) {
 
   latch_.unlock();
 
+  //return nullptr;
   return newPage;
+
 }
 
 bool BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) {
@@ -219,6 +228,8 @@ bool BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) {
   // 2.   If P exists, but has a non-zero pin-count, return false. Someone is using the page.
   // 3.   Otherwise, P can be deleted. Remove P from the page table, reset its metadata and return it to the free list.
   latch_.lock();
+
+  // DeallocatePage(page_id);
 
   if (page_table_.find(page_id) == page_table_.end()) {
     latch_.unlock();
@@ -262,7 +273,9 @@ bool BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) {
   auto iter = page_table_.find(page_id);
   if (iter == page_table_.end()) {
     latch_.unlock();
-    return false;
+
+    // this is a damn hole!
+    return true;
   }
 
   frame_id_t unpinned_frame_id = iter->second;
@@ -293,11 +306,11 @@ page_id_t BufferPoolManagerInstance::AllocatePage() {
   return next_page_id;
 }
 
-// equal now instance_index_
-// which is always complex to understand, damn it!
 
+// all code should be wrapped, damn it!
+
+// Page *BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) 
 void BufferPoolManagerInstance::ValidatePageId(const page_id_t page_id) const {
   assert(page_id % num_instances_ == instance_index_);  // allocated pages mod back to this BPI
 }
-
 }  // namespace bustub

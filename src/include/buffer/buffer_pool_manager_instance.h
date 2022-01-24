@@ -58,7 +58,14 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   /** @return pointer to all the pages in the buffer pool */
   Page *GetPages() { return pages_; }
 
- public:
+  // add some extra wrap function
+  Page* wrap_FetchPgImp(page_id_t page_id);
+  bool wrap_UnpinPgImp(page_id_t page_id, bool is_dirty);
+  bool wrap_FlushPgImp(page_id_t page_id);
+  Page* wrap_NewPgImp(page_id_t *page_id);
+  bool wrap_DeletePgImp(page_id_t page_id);
+  void wrap_FlushAllPgsImpl();
+ protected:
   bool find_replace(frame_id_t *frema_id);
   /**
    * Fetch the requested page from the buffer pool.
