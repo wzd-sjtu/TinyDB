@@ -185,7 +185,7 @@ class HashTableDirectoryPage {
    * Prints the current directory
    */
   void PrintDirectory();
-
+  // these are somehow too complex, damn it!
  private:
   // 4bytes 32bits
   // where the directory stores
@@ -198,6 +198,7 @@ class HashTableDirectoryPage {
   // 512*8 512bytes
   uint8_t local_depths_[DIRECTORY_ARRAY_SIZE];
   // 512*32 2048bytes
+  // also need to init the bucket?
   page_id_t bucket_page_ids_[DIRECTORY_ARRAY_SIZE];
 
   // almost no use for us

@@ -22,12 +22,59 @@
 
 namespace bustub {
 
+// exchange to something
+HashTableDirectoryPage* exchange_into_hashtabledirectory(Page* page_to_exchange) {
+  return (HashTableDirectoryPage*)page_to_exchange;
+}
+// too many elements, too much complex ,damn it!
+
+
 template <typename KeyType, typename ValueType, typename KeyComparator>
 HASH_TABLE_TYPE::ExtendibleHashTable(const std::string &name, BufferPoolManager *buffer_pool_manager,
                                      const KeyComparator &comparator, HashFunction<KeyType> hash_fn)
     : buffer_pool_manager_(buffer_pool_manager), comparator_(comparator), hash_fn_(std::move(hash_fn)) {
   //  implement me!
+  // firstly get the directory page
+  // get the page, whatever to get it?
+  // init of the extendiblehashtable
+  Page* tmp = buffer_pool_manager_->wrap_NewPgImp(&directory_page_id_);
+  HashTableDirectoryPage* dir_page = exchange_into_hashtabledirectory(tmp);
+  table_latch_.WLock();
+  dir_page->SetPageId(directory_page_id_);
+  // dir_page->SetLocalDepth(1); // it always begin as 1? unknown
+
+  dir_page->IncrGlobalDepth(); // in construct function, just inut it is ok
+
+  page_id_t first_id = 0;
+  page_id_t second_id = 0;
+
+  HashTableBucketPage* bucket1 = (HashTableBucketPage*)buffer_pool_manager_->wrap_NewPgImp(&first_id);
+  HashTableBucketPage* bucket2 = (HashTableBucketPage*)buffer_pool_manager_->wrap_NewPgImp(&second_id);
+
+  dir_page->bucket_page_ids_[0] = first_id;
+  dir_page->bucket_page_ids_[1] = second_id;
+
+  // what is the usage of depth mask? unkonwn
+  dir_page->local_depths_[0] = dir_page->GetGlobalDepth();
+  dir_page->local_depths_[1] = dir_page->GetGlobalDepth();
+
+  // complete the init of everything
+
+  for(uint32_t i=0; i<BUCKET_ARRAY_SIZE; i++) {
+    // occupy by it
+    // the only way to implement everything
+    bucket1->occupied_[i] = 0;
+    bucket1->readable_[i] = 0;
+    bucket2->occupied_[i] = 0;
+    bucket2->readable_[i] = 0;
+  }
+
+  table_latch_.WUnlock();
+
+  // then init the directory page here.
+
 }
+
 
 /*****************************************************************************
  * HELPERS
@@ -69,6 +116,18 @@ HASH_TABLE_BUCKET_TYPE *HASH_TABLE_TYPE::FetchBucketPage(page_id_t bucket_page_i
  *****************************************************************************/
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_TYPE::GetValue(Transaction *transaction, const KeyType &key, std::vector<ValueType> *result) {
+  table_latch_.RLock();
+
+  Page* tmp =   buffer_pool_manager_->wrap_FetchPgImp(directory_page_id_);
+  HashTableDirectoryPage* hash_directory_page = \
+    exchange_into_hashtabledirectory(tmp);
+  
+  uint32_t hash_key = Hash(key);
+  // just use a hash
+  
+
+  table_latch_.RUnlock();
+  // Page* directpry_page = buffer_pool_manager_->wrap_FetchPgImp()
   return false;
 }
 

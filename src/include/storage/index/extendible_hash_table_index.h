@@ -33,6 +33,7 @@ class ExtendibleHashTableIndex : public Index {
 
   ~ExtendibleHashTableIndex() override = default;
 
+  // automactaly together or delete.
   void InsertEntry(const Tuple &key, RID rid, Transaction *transaction) override;
 
   void DeleteEntry(const Tuple &key, RID rid, Transaction *transaction) override;
